@@ -37,8 +37,8 @@ target_link_libraries(InverseDynamicsController
 set_target_properties(InverseDynamicsController PROPERTIES PREFIX "")
 add_dependencies(InverseDynamicsController RTMBUILD2_${PROJECT_NAME}_genrpc) # wait for rtmbuild2_genidl
 
-# add_executable(InverseDynamicsControllerComp InverseDynamicsControllerComp.cpp)
-# target_link_libraries(InverseDynamicsControllerComp InverseDynamicsController)
+add_executable(InverseDynamicsControllerComp InverseDynamicsControllerComp.cpp)
+target_link_libraries(InverseDynamicsControllerComp InverseDynamicsController)
 
 install(TARGETS InverseDynamicsController
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
