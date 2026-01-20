@@ -1,0 +1,50 @@
+#ifndef InverseDynamicsControllerService_idl
+#define InverseDynamicsControllerService_idl
+
+module OpenHRP
+{
+
+  interface InverseDynamicsControllerService
+  {
+    struct InverseDynamicsControllerParam
+    {
+      // InverseDynamicsController
+      /// 各endeffectorの名前. 変更不可. (.confファイルのend_effectorsの並び順を、hrpsys外のレイヤで取得する手段が他に無いので)
+      sequence<string> ee_name;
+      /// Transition time [s] for start InverseDynamicsController. 下限0.01[s]
+      double idc_start_transition_time;
+      /// Transition time [s] for stop InverseDynamicsController. 下限0.01[s]
+      double idc_stop_transition_time;
+    };
+
+    /**
+     * @brief Start InverseDynamicsController mode in which rtc outputs the torques.
+     * @param
+     * @return true if set successfully, false otherwise
+     */
+    boolean startInverseDynamicsController();
+
+    /**
+     * @brief Stop InverseDynamicsController mode.
+     * @param
+     * @return true if set successfully, false otherwise
+     */
+    boolean stopInverseDynamicsController();
+
+    /**
+     * @brief Set InverseDynamicsController parameters
+     * @param i_param is input parameter
+     * @return true if set successfully, false otherwise
+     */
+    boolean setInverseDynamicsControllerParam(in InverseDynamicsControllerParam i_param);
+
+    /**
+     * @brief Get InverseDynamicsController parameters.
+     * @param i_param is output parameters
+     * @return true if set successfully, false otherwise
+     */
+    boolean getInverseDynamicsControllerParam(out InverseDynamicsControllerParam i_param);
+  };
+};
+
+#endif

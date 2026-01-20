@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>inverse_dynamics_controller</name>
+  <version>0.3.0</version>
+  <description>The inverse_dynamics_controller package</description>
+
+  <maintainer email="k-kojima@jsk.imi.i.u-tokyo.ac.jp">Kunio Kojima</maintainer>
+
+  <license>BSD</license>
+
+  <author email="k-kojima@jsk.imi.i.u-tokyo.ac.jp">Kunio Kojima</author>
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <depend>rtmbuild2</depend>
+  <depend>cpp_filters</depend>
+  <depend>choreonoid</depend>
+  <depend>hrpsys_ros_bridge</depend>
+  <!-- <depend>inverse_dynamics_controller_msgs</depend> -->
+</package>
