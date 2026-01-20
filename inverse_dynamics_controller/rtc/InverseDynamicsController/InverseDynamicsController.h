@@ -169,7 +169,7 @@ protected:
   bool getProperty(const std::string& key, std::string& ret);
 
   static bool readInPortData(const double& dt, const InverseDynamicsController::ControlMode& mode, InverseDynamicsController::Ports& ports, cnoid::BodyPtr refRobot, cnoid::BodyPtr actRobot);
-  static bool execInverseDynamicsController(const InverseDynamicsController::ControlMode& mode, const double dt);
+  static bool execInverseDynamicsController(const InverseDynamicsController::ControlMode& mode, const double dt, cnoid::BodyPtr refRobot, cnoid::BodyPtr actRobot);
   static bool writeOutPortData(const double& dt, const InverseDynamicsController::ControlMode& mode, InverseDynamicsController::Ports& ports, cnoid::BodyPtr refRobot, cnoid::BodyPtr actRobot, cpp_filters::TwoPointInterpolator<double>& idleToIdcTransitionInterpolator);
 };
 

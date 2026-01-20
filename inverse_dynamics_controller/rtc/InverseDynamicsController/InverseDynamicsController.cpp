@@ -4,7 +4,7 @@
 #include <cnoid/RateGyroSensor>
 #include <cnoid/ValueTree>
 #include <cnoid/EigenUtil>
-// #include "MathUtil.h"
+#include <cnoid/src/Body/InverseDynamics.h>
 #include "CnoidBodyUtil.h"
 #include <limits>
 
@@ -349,11 +349,73 @@ bool InverseDynamicsController::readInPortData(
 }
 
 // static function
-bool InverseDynamicsController::execInverseDynamicsController(const InverseDynamicsController::ControlMode& mode, const double dt) {
+bool InverseDynamicsController::execInverseDynamicsController(
+  const InverseDynamicsController::ControlMode& mode, const double dt,
+  cnoid::BodyPtr refRobot, cnoid::BodyPtr actRobot
+) {
   if(mode.isSyncToIDCInit()){ // startInverseDynamicsController直後の初回. パラメータのリセット
   }
 
-  // calcTorque
+  // calculate torues
+  // 速度・加速度を考慮しない重力補償
+  refRobot->rootLink()->v() = cnoid::Vector3::Zero();
+  refRobot->rootLink()->w() = cnoid::Vector3::Zero();
+  refRobot->rootLink()->dv() = cnoid::Vector3(0.0,0.0, 9.8); // gravity
+  refRobot->rootLink()->dw() = cnoid::Vector3::Zero();
+  for(int i=0;i<refRobot->numJoints();i++){
+    refRobot->joint(i)->dq() = 0.0;
+    refRobot->joint(i)->ddq() = 0.0;
+  }
+  refRobot->calcForwardKinematics(true, true);
+  cnoid::calcInverseDynamics(refRobot->rootLink()); // refRobot->joint()->u()に書き込まれる
+
+  // // tgtEEWrench
+  // for(int i=0;i<gaitParam.eeName.size();i++){
+  //   cnoid::JointPath jointPath(actRobotTqc->rootLink(), actRobotTqc->link(gaitParam.eeParentLink[i]));
+  //   cnoid::MatrixXd J = cnoid::MatrixXd::Zero(6,jointPath.numJoints()); // generate frame. endeffector origin
+  //   cnoid::setJacobian<0x3f,0,0,true>(jointPath,actRobotTqc->link(gaitParam.eeParentLink[i]),gaitParam.eeLocalT[i].translation(), // input
+  //                                     J); // output
+  //   cnoid::VectorX tau = - J.transpose() * tgtEEWrench[i];
+  //   for(int j=0;j<jointPath.numJoints();j++){
+  //     jointPath.joint(j)->u() += tau[j];
+  //   }
+  // }
+
+  // // Gain
+  // for(int i=0;i<NUM_LEGS;i++){
+  //   cnoid::JointPath jointPath(actRobotTqc->rootLink(), actRobotTqc->link(gaitParam.eeParentLink[i]));
+  //   if(gaitParam.isManualControlMode[i].getGoal() == 0.0) { // Manual Control off
+  //     if(gaitParam.footstepNodesList[0].isSupportPhase[i]){
+  //       double transitionTime = std::max(this->landing2SupportTransitionTime, dt*2); // 現状, setGoal(*,dt)以下の時間でgoal指定するとwriteOutPortDataが破綻するのでテンポラリ
+  //       for(int j=0;j<jointPath.numJoints();j++){
+  //         if(o_stServoPGainPercentage[jointPath.joint(j)->jointId()].getGoal() != this->supportPgain[i][j]) o_stServoPGainPercentage[jointPath.joint(j)->jointId()].setGoal(this->supportPgain[i][j], transitionTime);
+  //         if(o_stServoDGainPercentage[jointPath.joint(j)->jointId()].getGoal() != this->supportDgain[i][j]) o_stServoDGainPercentage[jointPath.joint(j)->jointId()].setGoal(this->supportDgain[i][j], transitionTime);
+  //       }
+  //     }else if(gaitParam.swingState[i] == GaitParam::DOWN_PHASE) {
+  //       double transitionTime = std::max(this->swing2LandingTransitionTime, dt*2); // 現状, setGoal(*,dt)以下の時間でgoal指定するとwriteOutPortDataが破綻するのでテンポラリ
+  //       for(int j=0;j<jointPath.numJoints();j++){
+  //         if(o_stServoPGainPercentage[jointPath.joint(j)->jointId()].getGoal() != this->landingPgain[i][j]) o_stServoPGainPercentage[jointPath.joint(j)->jointId()].setGoal(this->landingPgain[i][j], transitionTime);
+  //         if(o_stServoDGainPercentage[jointPath.joint(j)->jointId()].getGoal() != this->landingDgain[i][j]) o_stServoDGainPercentage[jointPath.joint(j)->jointId()].setGoal(this->landingDgain[i][j], transitionTime);
+  //       }
+  //     }else{
+  //       double transitionTime = std::max(this->support2SwingTransitionTime, dt*2); // 現状, setGoal(*,dt)以下の時間でgoal指定するとwriteOutPortDataが破綻するのでテンポラリ
+  //       for(int j=0;j<jointPath.numJoints();j++){
+  //         if(o_stServoPGainPercentage[jointPath.joint(j)->jointId()].getGoal() != this->swingPgain[i][j]) o_stServoPGainPercentage[jointPath.joint(j)->jointId()].setGoal(this->swingPgain[i][j], transitionTime);
+  //         if(o_stServoDGainPercentage[jointPath.joint(j)->jointId()].getGoal() != this->swingDgain[i][j]) o_stServoDGainPercentage[jointPath.joint(j)->jointId()].setGoal(this->swingDgain[i][j], transitionTime);
+  //       }
+  //     }
+  //   }else{ // Manual Control on
+  //     double transitionTime = std::max(gaitParam.isManualControlMode[i].remain_time(), dt*2); // 現状, setGoal(*,dt)以下の時間でgoal指定するとwriteOutPortDataが破綻するのでテンポラリ
+  //     for(int j=0;j<jointPath.numJoints();j++){
+  //       if(o_stServoPGainPercentage[jointPath.joint(j)->jointId()].getGoal() != 100.0) o_stServoPGainPercentage[jointPath.joint(j)->jointId()].setGoal(100.0, transitionTime);
+  //       if(o_stServoDGainPercentage[jointPath.joint(j)->jointId()].getGoal() != 100.0) o_stServoDGainPercentage[jointPath.joint(j)->jointId()].setGoal(100.0, transitionTime);
+  //     }
+  //   }
+  // }
+  // for(int i=0;i<gaitParam.genRobot->numJoints();i++){
+  //   o_stServoPGainPercentage[i].interpolate(dt);
+  //   o_stServoDGainPercentage[i].interpolate(dt);
+  // }
 
   return true;
 }
@@ -382,17 +444,20 @@ bool InverseDynamicsController::writeOutPortData(
     ports.m_tau_.tm = ports.m_qRef_.tm;
     ports.m_tau_.data.length(refRobot->numJoints());
     for(int i=0;i<refRobot->numJoints();i++){
+      double id_tau = refRobot->joint(i)->u(); // use reference robot
+      // double id_tau = actRobot->joint(i)->u(); // use actual robot
+
       if(mode.now() == InverseDynamicsController::ControlMode::MODE_IDLE){
         double value = ports.m_tauRef_.data[i];
         if(std::isfinite(value)) ports.m_tau_.data[i] = value;
         else std::cerr << "m_tauRef is not finite in joint(" << i << ")!" << std::endl;
       }else if(mode.isSyncToIDC() || mode.isSyncToIdle()){
         double ratio = idleToIdcTransitionInterpolator.value();
-        double value = ports.m_tauRef_.data[i] * (1.0 - ratio) + refRobot->joint(i)->u() * ratio;
+        double value = ports.m_tauRef_.data[i] * (1.0 - ratio) + id_tau * ratio;
         if(std::isfinite(value)) ports.m_tau_.data[i] = value;
         else std::cerr << "m_tauRef or the results of inverse dynamics is not finite in joint(" << i << ")!" << std::endl;
       }else{
-        double value = refRobot->joint(i)->u();
+        double value = id_tau;
         if(std::isfinite(value)) ports.m_tau_.data[i] = value;
         else std::cerr << "the results of inverse dynamics is not finite in joint(" << i << ")!" << std::endl;
       }
@@ -467,7 +532,7 @@ RTC::ReturnCode_t InverseDynamicsController::onExecute(RTC::UniqueId ec_id){
   if(this->mode_.isIDCRunning()) {
     if(this->mode_.isSyncToIDCInit()){ // startInverseDynamicsController直後の初回. 内部パラメータのリセット
     }
-    InverseDynamicsController::execInverseDynamicsController(this->mode_, this->dt_);
+    InverseDynamicsController::execInverseDynamicsController(this->mode_, this->dt_, this->refRobot, this->actRobot);
   }
 
   InverseDynamicsController::writeOutPortData( this->dt_, this->mode_, this->ports_, this->refRobot, this->actRobot, this->idleToIdcTransitionInterpolator_);
