@@ -96,10 +96,10 @@ RTC::ReturnCode_t InverseDynamicsController::onInitialize(){
       std::cerr << "\x1b[31m[" << this->m_profile.instance_name << "] " << "failed to load model[" << fileName << "]" << "\x1b[39m" << std::endl;
       return RTC::RTC_ERROR;
     }
-    if(!robot->rootLink()->isFreeJoint()){
-      std::cerr << "\x1b[31m[" << this->m_profile.instance_name << "] " << "rootLink is not FreeJoint [" << fileName << "]" << "\x1b[39m" << std::endl;
-      return RTC::RTC_ERROR;
-    }
+    // if(!robot->rootLink()->isFreeJoint()){
+    //   std::cerr << "\x1b[31m[" << this->m_profile.instance_name << "] " << "rootLink is not FreeJoint [" << fileName << "]" << "\x1b[39m" << std::endl;
+    //   return RTC::RTC_ERROR;
+    // }
     actRobot = robot->clone();
     actRobot->calcForwardKinematics(); actRobot->calcCenterOfMass();
     refRobot = robot->clone();
